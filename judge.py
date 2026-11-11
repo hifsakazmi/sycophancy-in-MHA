@@ -93,10 +93,16 @@ def with_retries(call, prompt, tries=8):
             return call(prompt)
         except Exception as e:  # rate limits / transient server errors
             msg = str(e)
-            transient = any(s in msg for s in ("429", "500", "502", "503", "504", "RESOURCE_EXHAUSTED", "UNAVAILABLE", "overloaded", "timeout"))
+            if any(s in msg for s in ("per day", "PerDay", "insufficient_quota")):
+                raise SystemExit(
+                    f"\nStopped: daily quota or credit exhausted, so retrying won't help.\n{msg[:400]}\n"
+                    "Verdicts so far are cached; rerun the same command once the limit resets or billing is added.")
+            transient =any(s in msg for s in ("429", "500", "502", "503", "504", "RESOURCE_EXHAUSTED", "UNAVAILABLE", "overloaded", "timeout"))
             if not transient or attempt == tries - 1:
                 raise
-            time.sleep(min(60, 2 ** attempt) + random.random())
+            wait = min(60, 2 ** attempt) + random.random()
+            print(f"\n[retry {attempt + 1}/{tries - 1} in {wait:.0f}s] {msg[:200]}", flush=True)
+            time.sleep(wait)
 
 
 def main():
