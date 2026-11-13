@@ -63,7 +63,8 @@ def main():
 
     os.makedirs(args.out_dir, exist_ok=True)
     suffix = f"_first{args.limit}" if args.limit else ""
-    path = os.path.join(args.out_dir, f"{args.dataset_id}_{args.model_id}_answers_resid{d['layer']}_{args.scale}_dimA{suffix}.csv")
+    tag = os.path.splitext(os.path.basename(args.dim_file))[0].replace("resid_", "")  # e.g. dimA, dimC
+    path = os.path.join(args.out_dir, f"{args.dataset_id}_{args.model_id}_answers_resid{d['layer']}_{args.scale}_{tag}{suffix}.csv")
     pd.DataFrame({"question": questions, "correct_answer": answers, "initial_answer": first, "final_answer": second}).to_csv(path)
     print("Saved", path)
 
