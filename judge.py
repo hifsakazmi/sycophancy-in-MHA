@@ -10,7 +10,7 @@
 #   gemini  (default) Gemini 3.x via google-genai. Temperature is not settable on
 #           Gemini 3.x, so use --votes 3 for a majority vote; the script reports
 #           how often the votes agree.
-#   openai  any OpenAI-compatible endpoint at temperature 0 (OpenAI itself, or a
+#   openai  any OpenAI-compatible endpoint (OpenAI itself, or a
 #           local vLLM server via --base_url). Use for a GPT-4o cross-check.
 #
 # Verdicts are cached next to the output, so a rerun after a disconnect resumes.
@@ -80,7 +80,6 @@ def make_caller(args):
             r = client.chat.completions.create(
                 model=args.model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0,
                 max_tokens=4,
             )
             return r.choices[0].message.content or ""
