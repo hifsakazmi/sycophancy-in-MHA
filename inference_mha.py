@@ -45,6 +45,8 @@ def get_probe_vectors(top_k_heads, model_id, scale=-5, num_layers=None, head_dim
     for layer in target_heads:
         for head in target_heads[layer]:
             current_probe = torch.load(f'linear_probe/trained_probe/{model_id}/linear_probe_{layer}_{head}.pth')['linear.weight'].squeeze()
+            if use_random_direction:
+                current_probe = torch.normal(mean=current_probe.mean(), std=current_probe.std(), size=current_probe.shape)
             current_probe = current_probe / torch.norm(current_probe, p=2)
             current_std = torch.load(f'linear_probe/trained_probe/{model_id}/std_mha_{layer}_{head}.pt')
             current_probe = scale * current_std * current_probe
@@ -58,8 +60,10 @@ def main():
     parser.add_argument('--k_heads', type=int, default=16, help='Number of top heads to use')
     parser.add_argument('--scale', type=float, default=-5, help='Scale factor for probe vectors')
     parser.add_argument('--direction_type', type=str, default='probe_weight', help='Direction type for probe vectors')
+    parser.add_argument('--use_random_direction', action='store_true', help='Use a random direction instead of the probe direction')
     
     args = parser.parse_args()
+    torch.manual_seed(0)
     
     model_id = args.model_id
     k_heads = args.k_heads
@@ -91,7 +95,7 @@ def main():
     print(f"Creating probe vectors with scale {scale}")
     linear_probes = get_probe_vectors(top_k_heads, model_id, scale=scale, 
                                       num_layers=NUM_LAYERS, head_dim=HEAD_DIM, num_heads=NUM_HEADS,
-                                      use_random_direction=False,
+                                      use_random_direction=args.use_random_direction,
                                       direction_type=args.direction_type
                                       )
     
@@ -127,7 +131,10 @@ def main():
     
     print("saving model responses")
     import pandas as pd
-    pd.DataFrame({'question': questions_test, 'correct_answer': correct_answers_test,'initial_answer': initial_answer, 'final_answer': final_answer}).to_csv(f"predictions/{args.dataset_id}_{model_id}_answers_{k_heads}_{scale}_mha.csv")
+    import os
+    os.makedirs("predictions", exist_ok=True)
+    suffix = "_random" if args.use_random_direction else ""
+    pd.DataFrame({'question': questions_test, 'correct_answer': correct_answers_test,'initial_answer': initial_answer, 'final_answer': final_answer}).to_csv(f"predictions/{args.dataset_id}_{model_id}_answers_{k_heads}_{scale}_mha{suffix}.csv")
 
 if __name__ == "__main__":
     main()
